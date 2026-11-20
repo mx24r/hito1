@@ -36,7 +36,7 @@ Haga doble clic en `index.html`. [Funciona sin servidor / Si no carga, use la op
 
 No se necesita instalar nada más: el simulador es HTML, CSS y JavaScript.
 
-**Opción b: servidor local con XAMPP**
+**Opción B: servidor local con XAMPP**
 
 1. Copie la carpeta del simulador (por ejemplo `claude/`) dentro de `C:\xampp\htdocs\`.
 2. Inicie **Apache** desde el panel de control de XAMPP.
