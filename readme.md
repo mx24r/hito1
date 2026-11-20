@@ -15,16 +15,8 @@ hito1/
 ├── claude/        # Simulador generado con Claude
 ├── chatgpt/       # Simulador generado con ChatGPT
 ├── gemini/        # Simulador generado con Gemini
-└── bitacora/      # Bitácoras de prompts y defectos (Excel) de cada equipo
+└── bitacora/      # Bitácoras de prompts y defectos (Excel)
 ```
-
-## Equipos y herramientas
-
-| Herramienta | Integrantes | Carpeta | Bitácora |
-|---|---|---|---|
-| Claude | [Mateo Rivera] | `claude/` | `bitacora/[archivo].xlsx` |
-| ChatGPT | [Emilio Poma, David Apolo] | `chatgpt/` | `bitacora/[archivo].xlsx` |
-| Gemini | [Jhonatan Jara, Santiago Castillo] | `gemini/` | `bitacora/[archivo].xlsx` |
 
 ## Archivos de cada simulador
 
