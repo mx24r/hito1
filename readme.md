@@ -30,18 +30,18 @@ hito1/
 
 ## Cómo ejecutarlo
 
-**Opción A: servidor local con XAMPP** (la usada por [nombre del equipo])
+**Opción A: abrir directamente el archivo**
+
+Haga doble clic en `index.html`. [Funciona sin servidor / Si no carga, use la opción b.]
+
+No se necesita instalar nada más: el simulador es HTML, CSS y JavaScript.
+
+**Opción b: servidor local con XAMPP**
 
 1. Copie la carpeta del simulador (por ejemplo `claude/`) dentro de `C:\xampp\htdocs\`.
 2. Inicie **Apache** desde el panel de control de XAMPP.
 3. Abra en el navegador `http://localhost/[carpeta]/index.html`.
 4. Para las pruebas automáticas, abra `http://localhost/[carpeta]/tests.html`.
-
-**Opción B: abrir directamente el archivo**
-
-Haga doble clic en `index.html`. [Funciona sin servidor / Si no carga, use la opción A.]
-
-No se necesita instalar nada más: el simulador es HTML, CSS y JavaScript.
 
 ## Cómo usarlo
 
@@ -82,26 +82,13 @@ Se verificaron 8 casos, con resultados esperados calculados a mano y comprobados
 | CP-S3 | SJF | P1(0,2), P2(5,3), P3(5,1) | P1 0-2, IDLE 2-5, P3 5-6, P2 6-9 | 0,33 / 2,33 |
 | CP-S4 | SJF | P1(0,6), P2(1,1) | P1 0-6, P2 6-7 | 2,50 / 6,00 |
 
-**Resultado en este simulador:** [8 de 8 casos aprobados / indicar cuáles fallaron y por qué].
-
 ## Uso de IA y trazabilidad
 
 - Herramienta usada: [Claude / ChatGPT / Gemini], versión o plan: [.].
 - Los prompts enviados, sus respuestas resumidas y los ajustes manuales están en la bitácora (`bitacora/[archivo].xlsx`, hoja «2. Bitácora»).
 - Los defectos encontrados, con su explicación según la teoría de Sistemas Operativos, están en la hoja «5. Defectos» de la misma bitácora.
 - Todo el código fue generado con la herramienta indicada y revisado por el equipo. Los cambios hechos a mano están registrados en la bitácora.
-
-## Defectos encontrados (resumen)
-
-| # | Defecto | Gravedad | Corregido |
-|---|---|---|---|
-| 1 | [descripción breve] | [Alta/Media/Baja] | [Sí/No] |
-
-## Limitaciones conocidas
-
-- [Ej.: aún no incluye Round Robin ni Prioridades, que corresponden al ciclo 2.]
-- [Otras limitaciones.]
-
+  
 ## Autores
 
 Grupo 5, Sistemas Operativos, UTPL: Emilio Poma, Mateo Rivera, David Apolo, Santiago Castillo y Jhonatan Jara.
