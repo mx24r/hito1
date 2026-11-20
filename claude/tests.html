@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pruebas — scheduler.js</title>
+  <style>
+    :root {
+      --texto: #111827;
+      --suave: #4b5563;
+      --borde: #d1d5db;
+      --ok: #047857;
+      --ok-fondo: #ecfdf5;
+      --fallo: #b91c1c;
+      --fallo-fondo: #fef2f2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--texto);
+      background: #f3f4f6;
+      line-height: 1.5;
+    }
+    header { background: #111827; color: #fff; padding: 1.25rem 1rem; }
+    header h1 { margin: 0 auto; max-width: 1100px; font-size: 1.5rem; }
+    header p { margin: 0.25rem auto 0; max-width: 1100px; color: #d1d5db; }
+    main { max-width: 1100px; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+
+    .resumen {
+      display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;
+      padding: 1rem 1.25rem; margin-bottom: 1.25rem;
+      background: #fff; border: 2px solid var(--borde); border-radius: 8px;
+      font-size: 1.1rem; font-weight: 700;
+    }
+    .resumen.todo-ok { border-color: var(--ok); color: var(--ok); background: var(--ok-fondo); }
+    .resumen.hay-fallos { border-color: var(--fallo); color: var(--fallo); background: var(--fallo-fondo); }
+
+    .caso {
+      background: #fff; border: 1px solid var(--borde); border-left-width: 6px;
+      border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem;
+    }
+    .caso.ok { border-left-color: var(--ok); }
+    .caso.fallo { border-left-color: var(--fallo); }
+    .caso h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin: 0 0 0.5rem; font-size: 1.1rem; }
+    .entrada { margin: 0 0 0.75rem; color: var(--suave); font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem; }
+
+    .insignia {
+      display: inline-block; padding: 0.1rem 0.6rem; border-radius: 999px;
+      font-size: 0.85rem; font-weight: 700; color: #fff;
+    }
+    .insignia.ok { background: var(--ok); }
+    .insignia.fallo { background: var(--fallo); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+    thead th { background: #f9fafb; border-bottom: 2px solid var(--borde); }
+    td.valor { font-family: ui-monospace, Consolas, monospace; }
+    td.estado-ok { color: var(--ok); font-weight: 700; white-space: nowrap; }
+    td.estado-fallo { color: var(--fallo); font-weight: 700; white-space: nowrap; }
+    .error { color: var(--fallo); font-weight: 700; margin: 0; }
+    .nota { color: var(--suave); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Pruebas de scheduler.js</h1>
+    <p>Se compara el Gantt completo (id, inicio y fin de cada tramo, incluidos los IDLE) y los promedios de espera y de retorno con tolerancia 0,01.</p>
+  </header>
+
+  <main>
+    <div id="resumen" class="resumen" role="status" aria-live="polite">Ejecutando pruebas…</div>
+    <div id="resultados"></div>
+    <p class="nota">Notación de entrada: P(llegada, ráfaga). La prioridad no interviene en estos algoritmos y se fija en 0.</p>
+  </main>
+
+  <script src="scheduler.js"></script>
+  <script>
+    "use strict";
+
+    const TOLERANCIA = 0.01;
+
+    // Ayudante: P("P1", llegada, ráfaga)
+    const P = (id, llegada, rafaga) => ({ id, llegada, rafaga, prioridad: 0 });
+    // Ayudante: T("P1", inicio, fin)
+    const T = (id, inicio, fin) => ({ id, inicio, fin });
+
+    const CASOS = [
+      {
+        nombre: "CP-F1", algoritmo: "fifo",
+        procesos: [P("P1", 0, 5), P("P2", 1, 3), P("P3", 2, 1)],
+        gantt: [T("P1", 0, 5), T("P2", 5, 8), T("P3", 8, 9)],
+        espera: 3.33, retorno: 6.33,
+      },
+      {
+        nombre: "CP-F2", algoritmo: "fifo",
+        procesos: [P("P1", 2, 3), P("P2", 3, 2), P("P3", 10, 1)],
+        gantt: [T("IDLE", 0, 2), T("P1", 2, 5), T("P2", 5, 7), T("IDLE", 7, 10), T("P3", 10, 11)],
+        espera: 0.67, retorno: 2.67,
+      },
+      {
+        nombre: "CP-F3", algoritmo: "fifo",
+        procesos: [P("P1", 0, 4), P("P2", 0, 2), P("P3", 0, 3)],
+        gantt: [T("P1", 0, 4), T("P2", 4, 6), T("P3", 6, 9)],
+        espera: 3.33, retorno: 6.33,
+      },
+      {
+        nombre: "CP-F4", algoritmo: "fifo",
+        procesos: [P("P1", 0, 7), P("P2", 2, 4), P("P3", 4, 1), P("P4", 5, 4)],
+        gantt: [T("P1", 0, 7), T("P2", 7, 11), T("P3", 11, 12), T("P4", 12, 16)],
+        espera: 4.75, retorno: 8.75,
+      },
+      {
+        nombre: "CP-S1", algoritmo: "sjf",
+        procesos: [P("P1", 0, 7), P("P2", 2, 4), P("P3", 4, 1), P("P4", 5, 4)],
+        gantt: [T("P1", 0, 7), T("P3", 7, 8), T("P2", 8, 12), T("P4", 12, 16)],
+        espera: 4.0, retorno: 8.0,
+      },
+      {
+        nombre: "CP-S2", algoritmo: "sjf",
+        procesos: [P("P1", 0, 3), P("P2", 0, 3), P("P3", 0, 1)],
+        gantt: [T("P3", 0, 1), T("P1", 1, 4), T("P2", 4, 7)],
+        espera: 1.67, retorno: 4.0,
+      },
+      {
+        nombre: "CP-S3", algoritmo: "sjf",
+        procesos: [P("P1", 0, 2), P("P2", 5, 3), P("P3", 5, 1)],
+        gantt: [T("P1", 0, 2), T("IDLE", 2, 5), T("P3", 5, 6), T("P2", 6, 9)],
+        espera: 0.33, retorno: 2.33,
+      },
+      {
+        nombre: "CP-S4", algoritmo: "sjf",
+        procesos: [P("P1", 0, 6), P("P2", 1, 1)],
+        gantt: [T("P1", 0, 6), T("P2", 6, 7)],
+        espera: 2.5, retorno: 6.0,
+      },
+    ];
+
+    // ---------------------------------------------------------------------------
+    // Comparaciones
+    // ---------------------------------------------------------------------------
+
+    const textoGantt = (g) => g.map((t) => `${t.id}(${t.inicio}-${t.fin})`).join(", ");
+    const textoEntrada = (ps) => ps.map((p) => `${p.id}(${p.llegada},${p.rafaga})`).join(", ");
+    const fmt = (n) => Number(n).toFixed(2).replace(".", ",");
+
+    function mismoGantt(esperado, obtenido) {
+      return (
+        esperado.length === obtenido.length &&
+        esperado.every(
+          (t, i) => t.id === obtenido[i].id && t.inicio === obtenido[i].inicio && t.fin === obtenido[i].fin
+        )
+      );
+    }
+
+    const dentroDeTolerancia = (esperado, obtenido) =>
+      Math.abs(esperado - obtenido) <= TOLERANCIA + 1e-9; // margen por coma flotante
+
+    function ejecutarCaso(caso) {
+      const comprobaciones = [];
+      let error = null;
+      try {
+        const r = Scheduler[caso.algoritmo](caso.procesos);
+        comprobaciones.push({
+          que: "Gantt completo",
+          esperado: textoGantt(caso.gantt),
+          obtenido: textoGantt(r.gantt),
+          ok: mismoGantt(caso.gantt, r.gantt),
+        });
+        comprobaciones.push({
+          que: "Promedio de espera",
+          esperado: fmt(caso.espera),
+          obtenido: fmt(r.promedios.espera),
+          ok: dentroDeTolerancia(caso.espera, r.promedios.espera),
+        });
+        comprobaciones.push({
+          que: "Promedio de retorno",
+          esperado: fmt(caso.retorno),
+          obtenido: fmt(r.promedios.retorno),
+          ok: dentroDeTolerancia(caso.retorno, r.promedios.retorno),
+        });
+      } catch (e) {
+        error = e.message;
+      }
+      const ok = error === null && comprobaciones.every((c) => c.ok);
+      return { caso, comprobaciones, error, ok };
+    }
+
+    // ---------------------------------------------------------------------------
+    // Presentación
+    // ---------------------------------------------------------------------------
+
+    function crear(etiqueta, clase, texto) {
+      const n = document.createElement(etiqueta);
+      if (clase) n.className = clase;
+      if (texto !== undefined) n.textContent = texto;
+      return n;
+    }
+
+    function pintarCaso(res) {
+      const { caso, comprobaciones, error, ok } = res;
+      const art = crear("article", "caso " + (ok ? "ok" : "fallo"));
+      art.setAttribute("aria-label", `${caso.nombre}: ${ok ? "pasa" : "falla"}`);
+
+      const h2 = crear("h2");
+      h2.append(
+        crear("span", "", `${caso.nombre} (${caso.algoritmo.toUpperCase()})`),
+        crear("span", "insignia " + (ok ? "ok" : "fallo"), ok ? "✔ PASA" : "✘ FALLA")
+      );
+      art.append(h2, crear("p", "entrada", "Entrada: " + textoEntrada(caso.procesos)));
+
+      if (error) {
+        art.append(crear("p", "error", "Error al ejecutar: " + error));
+        return art;
+      }
+
+      const tabla = crear("table");
+      const thead = crear("thead");
+      const filaCab = crear("tr");
+      for (const c of ["Comprobación", "Esperado", "Obtenido", "Resultado"]) {
+        const th = crear("th", "", c);
+        th.scope = "col";
+        filaCab.append(th);
+      }
+      thead.append(filaCab);
+      const tbody = crear("tbody");
+      for (const c of comprobaciones) {
+        const tr = crear("tr");
+        const th = crear("th", "", c.que);
+        th.scope = "row";
+        tr.append(
+          th,
+          crear("td", "valor", c.esperado),
+          crear("td", "valor", c.obtenido),
+          crear("td", c.ok ? "estado-ok" : "estado-fallo", c.ok ? "✔ Coincide" : "✘ No coincide")
+        );
+        tbody.append(tr);
+      }
+      tabla.append(thead, tbody);
+      art.append(tabla);
+      return art;
+    }
+
+    function ejecutarTodo() {
+      const contenedor = document.getElementById("resultados");
+      const resumen = document.getElementById("resumen");
+
+      if (!window.Scheduler) {
+        resumen.className = "resumen hay-fallos";
+        resumen.textContent = "No se pudo cargar scheduler.js (debe estar en la misma carpeta que tests.html).";
+        return;
+      }
+
+      const resultados = CASOS.map(ejecutarCaso);
+      resultados.forEach((r) => contenedor.append(pintarCaso(r)));
+
+      const pasan = resultados.filter((r) => r.ok).length;
+      const fallan = resultados.length - pasan;
+      resumen.className = "resumen " + (fallan === 0 ? "todo-ok" : "hay-fallos");
+      resumen.textContent =
+        `${pasan} de ${resultados.length} pruebas pasan` +
+        (fallan ? ` · ${fallan} fallan: ${resultados.filter((r) => !r.ok).map((r) => r.caso.nombre).join(", ")}` : " ✔");
+
+      // También en consola, útil para automatizar.
+      console.table(resultados.map((r) => ({ caso: r.caso.nombre, resultado: r.ok ? "PASA" : "FALLA" })));
+    }
+
+    ejecutarTodo();
+  </script>
+</body>
+</html>

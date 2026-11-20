@@ -1,0 +1,550 @@
+/* ==========================================================================
+   Simulador de planificación de procesos — estilos
+   ========================================================================== */
+
+:root {
+  --fondo: #f3f4f6;
+  --superficie: #ffffff;
+  --texto: #111827;
+  --texto-suave: #4b5563;
+  --borde: #d1d5db;
+  --borde-suave: #e5e7eb;
+
+  --primario: #1d4ed8;
+  --primario-hover: #1e40af;
+  --peligro: #b91c1c;
+  --peligro-hover: #991b1b;
+  --exito: #047857;
+  --error: #b91c1c;
+  --foco: #f59e0b;
+
+  --idle-fondo: #d1d5db;
+  --idle-texto: #1f2937;
+
+  --radio: 8px;
+  --sombra: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--texto);
+  background: var(--fondo);
+}
+
+.encabezado {
+  background: #111827;
+  color: #ffffff;
+  padding: 1.5rem 1rem;
+}
+
+.encabezado h1 {
+  margin: 0 auto 0.25rem;
+  max-width: 1100px;
+  font-size: 1.6rem;
+}
+
+.encabezado p {
+  margin: 0 auto;
+  max-width: 1100px;
+  color: #d1d5db;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.tarjeta {
+  background: var(--superficie);
+  border: 1px solid var(--borde-suave);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.tarjeta h2 {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Formulario ---------- */
+
+fieldset {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 1rem;
+  margin: 0 0 1rem;
+}
+
+legend {
+  font-weight: 600;
+  padding: 0 0.35rem;
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+input,
+select {
+  font: inherit;
+  color: var(--texto);
+  background: #ffffff;
+  border: 1px solid #6b7280;
+  border-radius: 6px;
+  padding: 0.45rem 0.6rem;
+  min-height: 2.5rem;
+}
+
+input[aria-invalid="true"] {
+  border-color: var(--error);
+  border-width: 2px;
+  background: #fef2f2;
+}
+
+.ayuda {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.error-campo {
+  margin: 0.2rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--error);
+  min-height: 0;
+}
+
+.error-campo:empty {
+  display: none;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* ---------- Botones ---------- */
+
+.btn {
+  font: inherit;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  min-height: 2.5rem;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.btn-primario {
+  background: var(--primario);
+  color: #ffffff;
+}
+
+.btn-primario:hover {
+  background: var(--primario-hover);
+}
+
+.btn-secundario {
+  background: #ffffff;
+  color: var(--primario);
+  border-color: var(--primario);
+}
+
+.btn-secundario:hover {
+  background: #eff6ff;
+}
+
+.btn-peligro {
+  background: #ffffff;
+  color: var(--peligro);
+  border-color: var(--peligro);
+}
+
+.btn-peligro:hover {
+  background: #fef2f2;
+}
+
+.btn-pequeno {
+  padding: 0.25rem 0.65rem;
+  min-height: 2rem;
+  font-size: 0.9rem;
+}
+
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* ---------- Tablas ---------- */
+
+.tabla-envoltura {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabla th,
+.tabla td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--borde-suave);
+  vertical-align: middle;
+}
+
+.tabla thead th {
+  background: #f9fafb;
+  border-bottom: 2px solid var(--borde);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.tabla .num {
+  text-align: right;
+}
+
+.tabla tbody tr:hover {
+  background: #f9fafb;
+}
+
+.tabla tr.editando {
+  background: #fffbeb;
+  box-shadow: inset 4px 0 0 var(--foco);
+}
+
+.tabla tfoot th,
+.tabla tfoot td {
+  font-weight: 700;
+  border-top: 2px solid var(--borde);
+  border-bottom: none;
+  background: #f9fafb;
+}
+
+.celda-acciones {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.celda-acciones .btn + .btn {
+  margin-left: 0.35rem;
+}
+
+.vacio {
+  margin: 0.75rem 0 0;
+  color: var(--texto-suave);
+  font-style: italic;
+}
+
+/* ---------- Controles de simulación ---------- */
+
+.controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.controles .campo {
+  min-width: 280px;
+  flex: 1 1 320px;
+}
+
+.controles .acciones {
+  margin-top: 0;
+}
+
+.descripcion {
+  color: var(--texto-suave);
+  margin: 0.75rem 0 0;
+}
+
+.tarjeta > .descripcion:first-of-type {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.estado {
+  margin: 0.75rem 0 0;
+  font-weight: 600;
+}
+
+.estado:empty {
+  display: none;
+}
+
+.estado.ok {
+  color: var(--exito);
+}
+
+.estado.error {
+  color: var(--error);
+}
+
+/* ---------- Marcas de proceso (chips) ---------- */
+
+.chip {
+  display: inline-block;
+  min-width: 2.25rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: center;
+  color: #ffffff;
+  background: var(--color, #374151);
+}
+
+.chip.idle,
+.segmento.idle {
+  color: var(--idle-texto);
+  background-color: var(--idle-fondo);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.45) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+.lista-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cola-vacia {
+  color: var(--texto-suave);
+  font-style: italic;
+}
+
+/* ---------- Gantt ---------- */
+
+.gantt-envoltura {
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.gantt {
+  position: relative;
+  min-width: 100%;
+  padding: 0 0.75rem; /* espacio para las etiquetas de los extremos del eje */
+}
+
+.gantt-barras {
+  display: flex;
+  height: 56px;
+  border: 1px solid #374151;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f9fafb; /* visible tras el final cuando la escala es común y el algoritmo termina antes */
+}
+
+/* Varios Gantt con la misma escala, uno debajo del otro y con scroll horizontal compartido */
+.gantt-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: max-content;
+  min-width: 100%;
+}
+
+.gantt-titulo {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  position: sticky;
+  left: 0.75rem;
+  width: max-content;
+}
+
+.segmento {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 0;
+  color: #ffffff;
+  background: var(--color, #374151);
+  border-right: 2px solid #ffffff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.segmento:last-child {
+  border-right: none;
+}
+
+.segmento.idle {
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.gantt-eje {
+  position: relative;
+  height: 2rem;
+}
+
+.marca {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.marca::before {
+  content: "";
+  width: 1px;
+  height: 6px;
+  background: #374151;
+}
+
+.marca.limite {
+  font-weight: 700;
+}
+
+.marca.limite::before {
+  width: 2px;
+  height: 9px;
+}
+
+.gantt-eje-titulo {
+  margin: 0.15rem 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.leyenda li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ---------- Cola de listos ---------- */
+
+.cola-envoltura {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid var(--borde-suave);
+  border-radius: 6px;
+}
+
+.tabla-cola thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tabla-cola td.num {
+  width: 6rem;
+}
+
+.tabla-cola td:nth-child(2) {
+  width: 8rem;
+}
+
+.formulas {
+  margin-top: 0.75rem;
+}
+
+/* ---------- Comparación ---------- */
+
+.subtitulo {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.tabla-comparacion tbody th {
+  font-weight: 700;
+}
+
+.tabla-comparacion td.mejor {
+  font-weight: 700;
+  color: var(--exito);
+  background: #ecfdf5;
+}
+
+.marca-mejor {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0 0.4rem;
+  border: 1px solid var(--exito);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--exito);
+  background: #ffffff;
+  vertical-align: middle;
+}
+
+@media (max-width: 600px) {
+  .encabezado h1 {
+    font-size: 1.3rem;
+  }
+
+  .tarjeta {
+    padding: 1rem;
+  }
+}

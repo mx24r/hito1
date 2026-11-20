@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulador de planificación de procesos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="encabezado">
+    <h1>Simulador de planificación de procesos</h1>
+    <p>Algoritmos no expropiativos: FIFO y SJF. El tiempo es discreto y el cambio de contexto no consume tiempo.</p>
+  </header>
+
+  <main>
+    <!-- ============ 1. Procesos ============ -->
+    <section class="tarjeta" aria-labelledby="titulo-procesos">
+      <h2 id="titulo-procesos">1. Procesos</h2>
+
+      <form id="form-proceso" class="formulario" novalidate>
+        <fieldset>
+          <legend id="leyenda-form">Agregar proceso</legend>
+          <div class="campos">
+            <div class="campo">
+              <label for="campo-id">Identificador</label>
+              <input id="campo-id" name="id" type="text" autocomplete="off" maxlength="12" placeholder="P1"
+                     aria-describedby="error-id">
+              <p class="error-campo" id="error-id" aria-live="polite"></p>
+            </div>
+            <div class="campo">
+              <label for="campo-llegada">Tiempo de llegada</label>
+              <input id="campo-llegada" name="llegada" type="number" inputmode="numeric" min="0" step="1" placeholder="0"
+                     aria-describedby="ayuda-llegada error-llegada">
+              <p class="ayuda" id="ayuda-llegada">Entero ≥ 0</p>
+              <p class="error-campo" id="error-llegada" aria-live="polite"></p>
+            </div>
+            <div class="campo">
+              <label for="campo-rafaga">Ráfaga de CPU</label>
+              <input id="campo-rafaga" name="rafaga" type="number" inputmode="numeric" min="1" step="1" placeholder="1"
+                     aria-describedby="ayuda-rafaga error-rafaga">
+              <p class="ayuda" id="ayuda-rafaga">Entero ≥ 1</p>
+              <p class="error-campo" id="error-rafaga" aria-live="polite"></p>
+            </div>
+            <div class="campo">
+              <label for="campo-prioridad">Prioridad</label>
+              <input id="campo-prioridad" name="prioridad" type="number" inputmode="numeric" step="1" placeholder="0"
+                     aria-describedby="ayuda-prioridad error-prioridad">
+              <p class="ayuda" id="ayuda-prioridad">Entero (aún no se usa)</p>
+              <p class="error-campo" id="error-prioridad" aria-live="polite"></p>
+            </div>
+          </div>
+          <div class="acciones">
+            <button type="submit" id="btn-guardar" class="btn btn-primario">Agregar proceso</button>
+            <button type="button" id="btn-cancelar" class="btn btn-secundario" hidden>Cancelar edición</button>
+            <button type="button" id="btn-ejemplo" class="btn btn-secundario">Cargar ejemplo</button>
+          </div>
+        </fieldset>
+      </form>
+
+      <div class="tabla-envoltura">
+        <table class="tabla" id="tabla-procesos">
+          <caption class="sr-only">Lista de procesos</caption>
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Identificador</th>
+              <th scope="col" class="num">Llegada</th>
+              <th scope="col" class="num">Ráfaga</th>
+              <th scope="col" class="num">Prioridad</th>
+              <th scope="col"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody id="cuerpo-procesos"></tbody>
+        </table>
+        <p id="sin-procesos" class="vacio">No hay procesos. Agrega uno con el formulario o carga el ejemplo.</p>
+      </div>
+    </section>
+
+    <!-- ============ 2. Simulación ============ -->
+    <section class="tarjeta" aria-labelledby="titulo-simulacion">
+      <h2 id="titulo-simulacion">2. Simulación</h2>
+      <div class="controles">
+        <div class="campo">
+          <label for="algoritmo">Algoritmo</label>
+          <select id="algoritmo" aria-describedby="descripcion-algoritmo">
+            <option value="fifo">FIFO (primero en llegar, primero en ser atendido)</option>
+            <option value="sjf">SJF no expropiativo (trabajo más corto primero)</option>
+          </select>
+        </div>
+        <div class="acciones">
+          <button type="button" id="btn-simular" class="btn btn-primario">Simular</button>
+          <button type="button" id="btn-comparar" class="btn btn-secundario"
+                  aria-describedby="ayuda-comparar">Comparar</button>
+          <button type="button" id="btn-reiniciar" class="btn btn-peligro">Reiniciar</button>
+        </div>
+      </div>
+      <p id="descripcion-algoritmo" class="descripcion"></p>
+      <p id="ayuda-comparar" class="ayuda">Comparar ejecuta FIFO y SJF con los mismos procesos, sin importar el algoritmo seleccionado.</p>
+      <p id="estado" class="estado" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- ============ 3. Resultados ============ -->
+    <div id="resultados" hidden>
+      <section class="tarjeta" aria-labelledby="titulo-gantt">
+        <h2 id="titulo-gantt">3. Diagrama de Gantt</h2>
+        <p class="descripcion" id="resumen-gantt"></p>
+        <div class="gantt-envoltura" id="gantt-contenedor"></div>
+        <ul class="leyenda" id="leyenda" aria-label="Leyenda de colores"></ul>
+      </section>
+
+      <section class="tarjeta" aria-labelledby="titulo-metricas">
+        <h2 id="titulo-metricas">4. Métricas por proceso</h2>
+        <div class="tabla-envoltura">
+          <table class="tabla" id="tabla-metricas">
+            <caption class="sr-only">Tiempos de espera, retorno y respuesta por proceso</caption>
+            <thead>
+              <tr>
+                <th scope="col">Proceso</th>
+                <th scope="col" class="num">Llegada</th>
+                <th scope="col" class="num">Ráfaga</th>
+                <th scope="col" class="num">Inicio</th>
+                <th scope="col" class="num">Fin</th>
+                <th scope="col" class="num">Espera</th>
+                <th scope="col" class="num">Retorno</th>
+                <th scope="col" class="num">Respuesta</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpo-metricas"></tbody>
+            <tfoot id="pie-metricas"></tfoot>
+          </table>
+        </div>
+        <p class="ayuda formulas">
+          Retorno = fin − llegada · Espera = retorno − ráfaga · Respuesta = inicio − llegada
+        </p>
+      </section>
+
+      <section class="tarjeta" aria-labelledby="titulo-cola">
+        <h2 id="titulo-cola">5. Cola de listos en cada instante</h2>
+        <p class="descripcion">
+          El instante <em>t</em> representa el intervalo [t, t+1). La cola no incluye al proceso en CPU
+          y se muestra en el orden en que el algoritmo los atendería.
+        </p>
+        <div class="tabla-envoltura cola-envoltura">
+          <table class="tabla tabla-cola" id="tabla-cola">
+            <caption class="sr-only">Proceso en CPU y cola de listos por instante</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="num">Instante</th>
+                <th scope="col">En CPU</th>
+                <th scope="col">Cola de listos</th>
+              </tr>
+            </thead>
+            <tbody id="cuerpo-cola"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ 3. Comparación ============ -->
+    <section class="tarjeta" id="comparacion" aria-labelledby="titulo-comparacion" hidden>
+      <h2 id="titulo-comparacion">3. Comparación FIFO vs. SJF</h2>
+      <p class="descripcion" id="resumen-comparacion"></p>
+      <div class="gantt-envoltura" id="comparacion-gantt"></div>
+      <ul class="leyenda" id="leyenda-comparacion" aria-label="Leyenda de colores"></ul>
+
+      <h3 class="subtitulo">Promedios por algoritmo</h3>
+      <div class="tabla-envoltura">
+        <table class="tabla tabla-comparacion" id="tabla-comparacion">
+          <caption class="sr-only">Promedios de espera, retorno y respuesta de FIFO y SJF</caption>
+          <thead>
+            <tr>
+              <th scope="col">Algoritmo</th>
+              <th scope="col" class="num">Espera promedio</th>
+              <th scope="col" class="num">Retorno promedio</th>
+              <th scope="col" class="num">Respuesta promedio</th>
+            </tr>
+          </thead>
+          <tbody id="cuerpo-comparacion"></tbody>
+          <tfoot id="pie-comparacion"></tfoot>
+        </table>
+      </div>
+      <p class="ayuda formulas">
+        En cada columna, el valor más bajo aparece en negrita y con la marca «menor».
+        La fila «Diferencia» es SJF − FIFO: un número negativo indica que SJF obtiene un promedio más bajo.
+      </p>
+    </section>
+  </main>
+
+  <script src="scheduler.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>
