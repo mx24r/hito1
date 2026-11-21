@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pruebas de Scheduler FIFO y SJF</title>
+    <style>
+        :root {
+            --bg: #101827;
+            --surface: #182335;
+            --surface2: #223148;
+            --border: #34445c;
+            --text: #f1f5f9;
+            --muted: #a9b7ca;
+            --green: #16a34a;
+            --green-bg: #123326;
+            --red: #dc2626;
+            --red-bg: #3b1d25;
+            --blue: #3b82f6;
+            --idle: #64748b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.5;
+        }
+
+        header {
+            padding: 24px 4%;
+            background: #17243a;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 { margin: 0 0 8px; font-size: 1.7rem; }
+        header p { margin: 0; color: var(--muted); }
+
+        main {
+            width: min(1200px, 94%);
+            margin: 26px auto;
+        }
+
+        .summary, .test-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+
+        .summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .summary h2 { margin: 0; font-size: 1.15rem; }
+        .summary-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .stat {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-weight: bold;
+        }
+
+        .stat.pass { color: #86efac; background: var(--green-bg); }
+        .stat.fail { color: #fca5a5; background: var(--red-bg); }
+        .stat.total { color: #bfdbfe; background: #1e3a5f; }
+
+        .test-card.pass { border-left: 5px solid var(--green); }
+        .test-card.fail { border-left: 5px solid var(--red); }
+
+        .test-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .test-head h3 { margin: 0; }
+        .status {
+            font-weight: bold;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 0.85rem;
+        }
+
+        .status.pass { background: var(--green-bg); color: #86efac; }
+        .status.fail { background: var(--red-bg); color: #fca5a5; }
+
+        .details {
+            color: var(--muted);
+            margin: 0 0 14px;
+        }
+
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .panel {
+            background: #111c2d;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            min-width: 0;
+        }
+
+        .panel h4 { margin: 0 0 10px; color: #dbeafe; }
+
+        .gantt {
+            display: flex;
+            overflow: hidden;
+            min-height: 44px;
+            border: 1px solid #64748b;
+            border-radius: 6px;
+        }
+
+        .segment {
+            flex: 0 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 0;
+            padding: 4px 2px;
+            color: white;
+            font-size: 0.78rem;
+            font-weight: bold;
+            border-right: 1px solid rgba(255,255,255,.35);
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .segment.idle { background: var(--idle); }
+        .segment.process { background: #2563eb; }
+        .segment.process:nth-child(2n) { background: #0d9488; }
+        .segment.process:nth-child(3n) { background: #7c3aed; }
+        .segment.process:nth-child(4n) { background: #b45309; }
+
+        .gantt-labels {
+            display: flex;
+            justify-content: space-between;
+            color: var(--muted);
+            font-size: 0.75rem;
+            margin-top: 6px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .metric {
+            background: var(--surface2);
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 0.9rem;
+        }
+
+        .metric strong { color: #dbeafe; }
+
+        .error-list {
+            margin: 12px 0 0;
+            padding-left: 20px;
+            color: #fca5a5;
+        }
+
+        .overall-error {
+            padding: 14px;
+            border: 1px solid var(--red);
+            border-radius: 8px;
+            color: #fecaca;
+            background: var(--red-bg);
+            margin-bottom: 18px;
+        }
+
+        .rerun {
+            padding: 10px 15px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--blue);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .rerun:hover { background: #2563eb; }
+
+        @media (max-width: 720px) {
+            .test-grid { grid-template-columns: 1fr; }
+            header h1 { font-size: 1.35rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Pruebas de scheduler.js</h1>
+        <p>Validación de FIFO y SJF: Gantt completo, promedio de espera y promedio de retorno.</p>
+    </header>
+
+    <main>
+        <section class="summary" aria-live="polite">
+            <h2 id="summaryTitle">Ejecutando pruebas…</h2>
+            <div class="summary-stats">
+                <span id="passStat" class="stat pass">PASS: 0</span>
+                <span id="failStat" class="stat fail">FAIL: 0</span>
+                <span id="totalStat" class="stat total">TOTAL: 8</span>
+            </div>
+            <button class="rerun" id="rerunBtn" type="button">Volver a ejecutar</button>
+        </section>
+
+        <div id="globalError" class="overall-error" hidden></div>
+        <section id="testResults" aria-live="polite"></section>
+    </main>
+
+    <!-- scheduler.js debe estar en la misma carpeta que tests.html -->
+    <script src="scheduler.js"></script>
+    <script>
+        "use strict";
+
+        const TOLERANCE = 0.01;
+
+        const testCases = [
+            {
+                id: "CP-F1",
+                algorithm: "FIFO",
+                input: [
+                    { id: "P1", llegada: 0, rafaga: 5, prioridad: 0 },
+                    { id: "P2", llegada: 1, rafaga: 3, prioridad: 0 },
+                    { id: "P3", llegada: 2, rafaga: 1, prioridad: 0 }
+                ],
+                expectedGantt: [
+                    { id: "P1", inicio: 0, fin: 5 },
+                    { id: "P2", inicio: 5, fin: 8 },
+                    { id: "P3", inicio: 8, fin: 9 }
+                ],
+                expectedWait: 3.33,
+                expectedTurnaround: 6.33
+            },
+            {
+                id: "CP-F2",
+                algorithm: "FIFO",
+                input: [
+                    { id: "P1", llegada: 2, rafaga: 3, prioridad: 0 },
+                    { id: "P2", llegada: 3, rafaga: 2, prioridad: 0 },
+                    { id: "P3", llegada: 10, rafaga: 1, prioridad: 0 }
+                ],
+                expectedGantt: [
+                    { id: "IDLE", inicio: 0, fin: 2 },
+                    { id: "P1", inicio: 2, fin: 5 },
+                    { id: "P2", inicio: 5, fin: 7 },
+                    { id: "IDLE", inicio: 7, fin: 10 },
+                    { id: "P3", inicio: 10, fin: 11 }
+                ],
+                expectedWait: 0.67,
+                expectedTurnaround: 2.67
+            },
+            {
+                id: "CP-F3",
+                algorithm: "FIFO",
+                input: [
+                    { id: "P1", llegada: 0, rafaga: 4, prioridad: 0 },
+                    { id: "P2", llegada: 0, rafaga: 2, prioridad: 0 },
+                    { id: "P3", llegada: 0, rafaga: 3, prioridad: 0 }
+                ],
+                expectedGantt: [
+                    { id: "P1", inicio: 0, fin: 4 },
+                    { id: "P2", inicio: 4, fin: 6 },
+                    { id: "P3", inicio: 6, fin: 9 }
+                ],
+                expectedWait: 3.33,
+                expectedTurnaround: 6.33
+            },
+            {
+                id: "CP-F4",
+                algorithm: "FIFO",
+                input: [
+                    { id: "P1", llegada: 0, rafaga: 7, prioridad: 0 },
+                    { id: "P2", llegada: 2, rafaga: 4, prioridad: 0 },
+                    { id: "P3", llegada: 4, rafaga: 1, prioridad: 0 },
+                    { id: "P4", llegada: 5, rafaga: 4, prioridad: 0 }
+                ],
+                expectedGantt: [
+                    { id: "P1", inicio: 0, fin: 7 },
+                    { id: "P2", inicio: 7, fin: 11 },
+                    { id: "P3", inicio: 11, fin: 12 },
+                    { id: "P4", inicio: 12, fin: 16 }
+                ],
+                expectedWait: 4.75,
+                expectedTurnaround: 8.75
+            },
+            {
+                id: "CP-S1",
+                algorithm: "SJF",
+                input: [
+                    { id: "P1", llegada: 0, rafaga: 7, prioridad: 0 },
+                    { id: "P2", llegada: 2, rafaga: 4, prioridad: 0 },
+                    { id: "P3", llegada: 4, rafaga: 1, prioridad: 0 },
+                    { id: "P4", llegada: 5, rafaga: 4, prioridad: 0 }
+                ],
+                expectedGantt: [
+                    { id: "P1", inicio: 0, fin: 7 },
+                    { id: "P3", inicio: 7, fin: 8 },
+                    { id: "P2", inicio: 8, fin: 12 },
+                    { id: "P4", inicio: 12, fin: 16 }
+                ],
+                expectedWait: 4.0,
+                expectedTurnaround: 8.0
+            },
+            {
+                id: "CP-S2",
+                algorithm: "SJF",
+                input: [
+                    { id: "P1", llegada: 0, rafaga: 3, prioridad: 0 },
+                    { id: "P2", llegada: 0, rafaga: 3, prioridad: 0 },
+                    { id: "P3", llegada: 0, rafaga: 1, prioridad: 0 }
+                ],
+                expectedGantt: [
+                    { id: "P3", inicio: 0, fin: 1 },
+                    { id: "P1", inicio: 1, fin: 4 },
+                    { id: "P2", inicio: 4, fin: 7 }
+                ],
+                expectedWait: 1.67,
+                expectedTurnaround: 4.0
+            },
+            {
+                id: "CP-S3",
+                algorithm: "SJF",
+                input: [
+                    { id: "P1", llegada: 0, rafaga: 2, prioridad: 0 },
+                    { id: "P2", llegada: 5, rafaga: 3, prioridad: 0 },
+                    { id: "P3", llegada: 5, rafaga: 1, prioridad: 0 }
+                ],
+                expectedGantt: [
+                    { id: "P1", inicio: 0, fin: 2 },
+                    { id: "IDLE", inicio: 2, fin: 5 },
+                    { id: "P3", inicio: 5, fin: 6 },
+                    { id: "P2", inicio: 6, fin: 9 }
+                ],
+                expectedWait: 0.33,
+                expectedTurnaround: 2.33
+            },
+            {
+                id: "CP-S4",
+                algorithm: "SJF",
+                input: [
+                    { id: "P1", llegada: 0, rafaga: 6, prioridad: 0 },
+                    { id: "P2", llegada: 1, rafaga: 1, prioridad: 0 }
+                ],
+                expectedGantt: [
+                    { id: "P1", inicio: 0, fin: 6 },
+                    { id: "P2", inicio: 6, fin: 7 }
+                ],
+                expectedWait: 2.5,
+                expectedTurnaround: 6.0
+            }
+        ];
+
+        const testResultsElement = document.getElementById("testResults");
+        const globalErrorElement = document.getElementById("globalError");
+        const summaryTitleElement = document.getElementById("summaryTitle");
+        const passStatElement = document.getElementById("passStat");
+        const failStatElement = document.getElementById("failStat");
+        const totalStatElement = document.getElementById("totalStat");
+
+        function getSchedulerFunction(algorithm) {
+            // Compatible con el objeto global Scheduler usado por la interfaz.
+            if (window.Scheduler && typeof window.Scheduler[algorithm.toLowerCase()] === "function") {
+                return window.Scheduler[algorithm.toLowerCase()];
+            }
+
+            // Compatibilidad adicional si scheduler.js expone funciones globales.
+            const globalFunction = window[algorithm.toLowerCase()];
+            if (typeof globalFunction === "function") {
+                return globalFunction;
+            }
+
+            throw new Error(
+                "No se encontró la función " + algorithm.toLowerCase() +
+                ". Verifica que scheduler.js exponga Scheduler." + algorithm.toLowerCase() + "(procesos)."
+            );
+        }
+
+        function normalizeGantt(gantt) {
+            if (!Array.isArray(gantt)) {
+                throw new Error("El resultado no contiene una lista Gantt válida.");
+            }
+
+            return gantt.map(segment => ({
+                id: String(segment.id),
+                inicio: Number(segment.inicio),
+                fin: Number(segment.fin)
+            }));
+        }
+
+        function compareGantt(expected, actual) {
+            const errors = [];
+
+            if (expected.length !== actual.length) {
+                errors.push(
+                    "Cantidad de tramos distinta: esperado " + expected.length +
+                    ", obtenido " + actual.length + "."
+                );
+            }
+
+            const length = Math.min(expected.length, actual.length);
+
+            for (let i = 0; i < length; i++) {
+                const e = expected[i];
+                const a = actual[i];
+
+                if (e.id !== a.id || e.inicio !== a.inicio || e.fin !== a.fin) {
+                    errors.push(
+                        "Tramo " + (i + 1) + ": esperado " +
+                        e.id + "(" + e.inicio + "-" + e.fin + "), obtenido " +
+                        a.id + "(" + a.inicio + "-" + a.fin + ")."
+                    );
+                }
+            }
+
+            return errors;
+        }
+
+        function getAverage(result, key) {
+            if (!result || !result.promedios) {
+                throw new Error("El resultado no contiene el objeto promedios.");
+            }
+
+            const value = Number(result.promedios[key]);
+
+            if (!Number.isFinite(value)) {
+                throw new Error("Promedio '" + key + "' ausente o inválido.");
+            }
+
+            return value;
+        }
+
+        function compareAverage(label, expected, actual) {
+            const difference = Math.abs(expected - actual);
+
+            if (difference > TOLERANCE) {
+                return label + ": esperado " + expected.toFixed(2) +
+                    ", obtenido " + actual.toFixed(2) +
+                    " (diferencia " + difference.toFixed(3) +
+                    ", tolerancia " + TOLERANCE.toFixed(2) + ").";
+            }
+
+            return null;
+        }
+
+        function ganttMarkup(gantt) {
+            if (!gantt.length) {
+                return '<p class="details">Gantt vacío.</p>';
+            }
+
+            const start = Math.min(...gantt.map(s => s.inicio));
+            const end = Math.max(...gantt.map(s => s.fin));
+            const total = Math.max(end - start, 1);
+
+            const blocks = gantt.map(segment => {
+                const duration = segment.fin - segment.inicio;
+                const idle = segment.id === "IDLE";
+                const width = (duration / total) * 100;
+
+                return `
+                    <div class="segment ${idle ? "idle" : "process"}"
+                         style="width:${width}%"
+                         title="${escapeHtml(segment.id)}: ${segment.inicio}–${segment.fin}">
+                        ${escapeHtml(segment.id)}
+                    </div>
+                `;
+            }).join("");
+
+            const labels = gantt.map(s => s.inicio);
+            labels.push(gantt[gantt.length - 1].fin);
+
+            return `
+                <div class="gantt">${blocks}</div>
+                <div class="gantt-labels">
+                    ${labels.map(t => `<span>${t}</span>`).join("")}
+                </div>
+            `;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function runOneTest(test) {
+            const errors = [];
+
+            const functionName = test.algorithm.toLowerCase();
+            const schedulerFunction = getSchedulerFunction(test.algorithm);
+
+            // Se copia la entrada para evitar que un algoritmo altere los datos de otros casos.
+            const inputCopy = test.input.map(p => ({ ...p }));
+            const result = schedulerFunction(inputCopy);
+
+            const actualGantt = normalizeGantt(result.gantt);
+            errors.push(...compareGantt(test.expectedGantt, actualGantt));
+
+            const actualWait = getAverage(result, "espera");
+            const actualTurnaround = getAverage(result, "retorno");
+
+            const waitError = compareAverage(
+                "Promedio de espera",
+                test.expectedWait,
+                actualWait
+            );
+
+            const turnaroundError = compareAverage(
+                "Promedio de retorno",
+                test.expectedTurnaround,
+                actualTurnaround
+            );
+
+            if (waitError) errors.push(waitError);
+            if (turnaroundError) errors.push(turnaroundError);
+
+            return {
+                passed: errors.length === 0,
+                errors,
+                actualGantt,
+                actualWait,
+                actualTurnaround,
+                algorithm: functionName
+            };
+        }
+
+        function renderTest(test, result) {
+            const expectedGanttHTML = ganttMarkup(test.expectedGantt);
+            const actualGanttHTML = ganttMarkup(result.actualGantt);
+
+            const statusClass = result.passed ? "pass" : "fail";
+            const statusText = result.passed ? "PASS" : "FAIL";
+
+            const errorsHTML = result.errors.length
+                ? `<ul class="error-list">${result.errors.map(error =>
+                    `<li>${escapeHtml(error)}</li>`).join("")}</ul>`
+                : "";
+
+            const card = document.createElement("article");
+            card.className = "test-card " + statusClass;
+
+            card.innerHTML = `
+                <div class="test-head">
+                    <h3>${escapeHtml(test.id)} — ${escapeHtml(test.algorithm)}</h3>
+                    <span class="status ${statusClass}">${statusText}</span>
+                </div>
+
+                <p class="details">
+                    Entrada: ${test.input.map(p =>
+                        `${escapeHtml(p.id)}(${p.llegada},${p.rafaga})`
+                    ).join(", ")}
+                </p>
+
+                <div class="test-grid">
+                    <div class="panel">
+                        <h4>Gantt esperado</h4>
+                        ${expectedGanttHTML}
+                        <div class="metrics">
+                            <div class="metric">
+                                <strong>Espera:</strong> ${test.expectedWait.toFixed(2)}
+                            </div>
+                            <div class="metric">
+                                <strong>Retorno:</strong> ${test.expectedTurnaround.toFixed(2)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <h4>Gantt obtenido</h4>
+                        ${actualGanttHTML}
+                        <div class="metrics">
+                            <div class="metric">
+                                <strong>Espera:</strong> ${result.actualWait.toFixed(2)}
+                            </div>
+                            <div class="metric">
+                                <strong>Retorno:</strong> ${result.actualTurnaround.toFixed(2)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                ${errorsHTML}
+            `;
+
+            return card;
+        }
+
+        function runAllTests() {
+            testResultsElement.innerHTML = "";
+            globalErrorElement.hidden = true;
+            globalErrorElement.textContent = "";
+
+            let passed = 0;
+            let failed = 0;
+
+            testCases.forEach(test => {
+                try {
+                    const result = runOneTest(test);
+                    testResultsElement.appendChild(renderTest(test, result));
+
+                    if (result.passed) {
+                        passed++;
+                    } else {
+                        failed++;
+                    }
+                } catch (error) {
+                    failed++;
+
+                    const card = document.createElement("article");
+                    card.className = "test-card fail";
+                    card.innerHTML = `
+                        <div class="test-head">
+                            <h3>${escapeHtml(test.id)} — ${escapeHtml(test.algorithm)}</h3>
+                            <span class="status fail">FAIL</span>
+                        </div>
+                        <div class="overall-error">
+                            Error al ejecutar el caso: ${escapeHtml(error.message)}
+                        </div>
+                    `;
+                    testResultsElement.appendChild(card);
+                }
+            });
+
+            passStatElement.textContent = "PASS: " + passed;
+            failStatElement.textContent = "FAIL: " + failed;
+            totalStatElement.textContent = "TOTAL: " + testCases.length;
+
+            summaryTitleElement.textContent =
+                failed === 0
+                    ? "Todas las pruebas pasaron"
+                    : "Se encontraron fallos";
+
+            summaryTitleElement.style.color =
+                failed === 0 ? "#86efac" : "#fca5a5";
+        }
+
+        document.getElementById("rerunBtn").addEventListener("click", runAllTests);
+
+        // Ejecutar automáticamente al cargar la página.
+        runAllTests();
+    </script>
+</body>
+</html>

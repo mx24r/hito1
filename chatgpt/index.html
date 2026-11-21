@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Planificación de Procesos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-content">
+            <div>
+                <h1>Simulador de Planificación de Procesos</h1>
+                <p>Simulación de algoritmos de planificación de CPU</p>
+            </div>
+            <span class="header-badge">FIFO · SJF</span>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- Gestión de procesos -->
+        <section class="card">
+            <div class="section-heading">
+                <div>
+                    <h2>Gestión de procesos</h2>
+                    <p>Agrega, edita o elimina procesos antes de simular.</p>
+                </div>
+                <span id="processCount" class="counter">0 procesos</span>
+            </div>
+
+            <form id="processForm" class="process-form">
+                <div class="form-group">
+                    <label for="processId">Identificador</label>
+                    <input
+                        type="text"
+                        id="processId"
+                        placeholder="Ej. P1"
+                        maxlength="12"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="arrivalTime">Tiempo de llegada</label>
+                    <input
+                        type="number"
+                        id="arrivalTime"
+                        min="0"
+                        step="1"
+                        placeholder="0"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="burstTime">Ráfaga de CPU</label>
+                    <input
+                        type="number"
+                        id="burstTime"
+                        min="1"
+                        step="1"
+                        placeholder="5"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="priority">Prioridad</label>
+                    <input
+                        type="number"
+                        id="priority"
+                        step="1"
+                        placeholder="0"
+                        value="0"
+                        required
+                    >
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" id="saveProcessBtn" class="btn btn-primary">
+                        Agregar proceso
+                    </button>
+
+                    <button type="button" id="cancelEditBtn" class="btn btn-secondary hidden">
+                        Cancelar edición
+                    </button>
+                </div>
+            </form>
+
+            <div id="formMessage" class="message hidden" role="alert"></div>
+
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Identificador</th>
+                            <th>Llegada</th>
+                            <th>Ráfaga</th>
+                            <th>Prioridad</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="processTableBody"></tbody>
+                </table>
+
+                <div id="emptyProcesses" class="empty-state">
+                    No hay procesos registrados. Agrega uno para comenzar.
+                </div>
+            </div>
+        </section>
+
+        <!-- Configuración -->
+        <section class="card">
+            <div class="section-heading">
+                <div>
+                    <h2>Configuración de simulación</h2>
+                    <p>Selecciona un algoritmo o compara ambos.</p>
+                </div>
+            </div>
+
+            <div class="simulation-controls">
+                <div class="form-group algorithm-group">
+                    <label for="algorithm">Algoritmo</label>
+                    <select id="algorithm">
+                        <option value="fifo">FIFO (First In, First Out)</option>
+                        <option value="sjf">SJF (Shortest Job First)</option>
+                    </select>
+                </div>
+
+                <div class="control-buttons">
+                    <button id="simulateBtn" class="btn btn-primary" type="button">
+                        Simular
+                    </button>
+
+                    <button id="compareBtn" class="btn btn-comparison" type="button">
+                        Comparar
+                    </button>
+
+                    <button id="resetBtn" class="btn btn-danger" type="button">
+                        Reiniciar
+                    </button>
+                </div>
+            </div>
+
+            <div id="simulationMessage" class="message hidden" role="alert"></div>
+        </section>
+
+        <!-- Gantt individual -->
+        <section class="card">
+            <div class="section-heading">
+                <div>
+                    <h2>Diagrama de Gantt</h2>
+                    <p>Visualización del algoritmo seleccionado.</p>
+                </div>
+            </div>
+
+            <div id="ganttContainer" class="result-container">
+                <div class="empty-state">
+                    Ejecuta una simulación para visualizar el diagrama de Gantt.
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparación de algoritmos -->
+        <section id="comparisonSection" class="card hidden">
+            <div class="section-heading">
+                <div>
+                    <h2>Comparación de algoritmos</h2>
+                    <p>FIFO y SJF ejecutados con los mismos procesos y escala temporal.</p>
+                </div>
+            </div>
+
+            <div class="comparison-gantt-container">
+                <div class="comparison-algorithm">
+                    <h3>FIFO (First In, First Out)</h3>
+                    <div id="comparisonFifoGantt" class="result-container"></div>
+                </div>
+
+                <div class="comparison-algorithm">
+                    <h3>SJF (Shortest Job First)</h3>
+                    <div id="comparisonSjfGantt" class="result-container"></div>
+                </div>
+            </div>
+
+            <div class="comparison-metrics-wrapper">
+                <h3>Comparación de promedios</h3>
+
+                <div id="comparisonMetrics" class="result-container">
+                    <div class="empty-state">
+                        Ejecuta la comparación para ver los promedios.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cola de listos -->
+        <section class="card">
+            <div class="section-heading">
+                <div>
+                    <h2>Cola de listos</h2>
+                    <p>Procesos disponibles para ejecución en cada instante.</p>
+                </div>
+            </div>
+
+            <div id="readyQueueContainer" class="result-container">
+                <div class="empty-state">
+                    La cola de listos aparecerá después de la simulación.
+                </div>
+            </div>
+        </section>
+
+        <!-- Métricas individuales -->
+        <section class="card">
+            <div class="section-heading">
+                <div>
+                    <h2>Métricas de rendimiento</h2>
+                    <p>Resultados individuales y promedios del algoritmo seleccionado.</p>
+                </div>
+            </div>
+
+            <div id="metricsContainer" class="result-container">
+                <div class="empty-state">
+                    Las métricas aparecerán después de la simulación.
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>Simulador académico de planificación de procesos · Tiempo discreto</p>
+    </footer>
+
+    <script src="scheduler.js"></script>
+    <script src="ui.js"></script>
+
+</body>
+</html>
