@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Planificación de Procesos</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <h1>Simulador de Planificación de Procesos</h1>
+      <p>Planificación de CPU en tiempo discreto (FIFO y SJF no expropiativo)</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Panel de configuración y procesos -->
+    <section class="card" aria-labelledby="titulo-procesos">
+      <div class="card-header">
+        <h2 id="titulo-procesos">1. Gestión de Procesos</h2>
+        <button type="button" id="btn-agregar-fila" class="btn btn-secondary">
+          + Agregar proceso
+        </button>
+      </div>
+
+      <div id="mensaje-error" class="alert alert-error" role="alert" hidden></div>
+
+      <div class="table-responsive">
+        <table id="tabla-procesos">
+          <thead>
+            <tr>
+              <th scope="col">Identificador</th>
+              <th scope="col">Tiempo de llegada</th>
+              <th scope="col">Ráfaga de CPU</th>
+              <th scope="col">Prioridad</th>
+              <th scope="col" class="col-acciones">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-procesos">
+            <!-- Filas generadas dinámicamente por ui.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="controls-bar">
+        <div class="control-group">
+          <label for="select-algoritmo">Algoritmo de planificación:</label>
+          <select id="select-algoritmo" name="algoritmo">
+            <option value="FIFO">FIFO (First-In, First-Out)</option>
+            <option value="SJF">SJF (Shortest Job First - No expropiativo)</option>
+          </select>
+        </div>
+
+        <div class="control-actions">
+          <button type="button" id="btn-simular" class="btn btn-primary">
+            Simular
+          </button>
+          <button type="button" id="btn-comparar" class="btn btn-secondary">
+            Comparar
+          </button>
+          <button type="button" id="btn-reiniciar" class="btn btn-outline">
+            Reiniciar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel de resultados (Simulación individual) -->
+    <section id="panel-resultados" class="resultados-grid" hidden>
+      <!-- Diagrama de Gantt -->
+      <article class="card full-width" aria-labelledby="titulo-gantt">
+        <div class="card-header">
+          <h2 id="titulo-gantt">2. Diagrama de Gantt</h2>
+          <span id="badge-algoritmo" class="badge"></span>
+        </div>
+        <div id="gantt-wrapper" class="gantt-wrapper">
+          <div id="gantt-chart" class="gantt-chart" role="img" aria-label="Diagrama de Gantt de ejecución"></div>
+          <div id="gantt-axis" class="gantt-axis"></div>
+        </div>
+      </article>
+
+      <!-- Tabla de métricas -->
+      <article class="card" aria-labelledby="titulo-metricas">
+        <h2 id="titulo-metricas">3. Métricas por Proceso</h2>
+        <div class="table-responsive">
+          <table id="tabla-metricas">
+            <thead>
+              <tr>
+                <th scope="col">Proceso</th>
+                <th scope="col">Llegada</th>
+                <th scope="col">Ráfaga</th>
+                <th scope="col">Espera</th>
+                <th scope="col">Retorno</th>
+                <th scope="col">Respuesta</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-metricas"></tbody>
+            <tfoot id="tfoot-metricas"></tfoot>
+          </table>
+        </div>
+      </article>
+
+      <!-- Cola de listos por instante -->
+      <article class="card" aria-labelledby="titulo-cola">
+        <h2 id="titulo-cola">4. Cola de Listos por Instante</h2>
+        <div class="table-responsive max-h-scroll">
+          <table id="tabla-cola">
+            <thead>
+              <tr>
+                <th scope="col">Instante (t)</th>
+                <th scope="col">En ejecución</th>
+                <th scope="col">Cola de listos</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-cola"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <!-- Panel de comparación FIFO vs SJF -->
+    <section id="panel-comparacion" class="resultados-grid" hidden aria-labelledby="titulo-comparacion">
+      <article class="card full-width">
+        <div class="card-header">
+          <h2 id="titulo-comparacion">Comparación: FIFO vs. SJF (No expropiativo)</h2>
+          <span id="badge-escala-comparacion" class="badge"></span>
+        </div>
+
+        <div class="comparacion-gantt-stack">
+          <div class="gantt-fila">
+            <h3 class="gantt-subtitulo">FIFO</h3>
+            <div class="gantt-wrapper">
+              <div id="gantt-chart-fifo" class="gantt-chart" role="img" aria-label="Diagrama de Gantt FIFO"></div>
+              <div id="gantt-axis-fifo" class="gantt-axis"></div>
+            </div>
+          </div>
+
+          <div class="gantt-fila">
+            <h3 class="gantt-subtitulo">SJF (No expropiativo)</h3>
+            <div class="gantt-wrapper">
+              <div id="gantt-chart-sjf" class="gantt-chart" role="img" aria-label="Diagrama de Gantt SJF"></div>
+              <div id="gantt-axis-sjf" class="gantt-axis"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card full-width" aria-labelledby="titulo-tabla-comparacion">
+        <h2 id="titulo-tabla-comparacion">Promedio de Tiempos por Algoritmo</h2>
+        <div class="table-responsive">
+          <table id="tabla-comparacion-promedios">
+            <thead>
+              <tr>
+                <th scope="col">Algoritmo</th>
+                <th scope="col">Promedio de espera</th>
+                <th scope="col">Promedio de retorno</th>
+                <th scope="col">Promedio de respuesta</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-comparacion-promedios"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script type="module" src="ui.js"></script>
+</body>
+</html>

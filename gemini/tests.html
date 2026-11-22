@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pruebas Unitarias — scheduler.js</title>
+  <style>
+    :root {
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #4b5563;
+      --border: #d1d5db;
+      --pass-bg: #dcfce7;
+      --pass-text: #14532d;
+      --pass-border: #86efac;
+      --fail-bg: #fee2e2;
+      --fail-text: #7f1d1d;
+      --fail-border: #fca5a5;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 1.5rem 1rem;
+    }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: #1e293b;
+      color: #ffffff;
+      padding: 1.25rem 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1.25rem;
+    }
+
+    header h1 {
+      margin: 0 0 0.25rem 0;
+      font-size: 1.45rem;
+    }
+
+    header p {
+      margin: 0;
+      color: #e2e8f0;
+      font-size: 0.92rem;
+    }
+
+    .summary {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+
+    .summary-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1.15rem;
+      min-width: 150px;
+    }
+
+    .summary-box span {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .summary-box strong {
+      font-size: 1.35rem;
+    }
+
+    .test-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .test-card.pass {
+      border-left: 5px solid #16a34a;
+    }
+
+    .test-card.fail {
+      border-left: 5px solid #dc2626;
+      background-color: #fffafa;
+    }
+
+    .test-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .test-title {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .status-badge {
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .status-badge.pass {
+      background: var(--pass-bg);
+      color: var(--pass-text);
+      border-color: var(--pass-border);
+    }
+
+    .status-badge.fail {
+      background: var(--fail-bg);
+      color: var(--fail-text);
+      border-color: var(--fail-border);
+    }
+
+    .test-meta {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .checks {
+      margin: 0.5rem 0 0 0;
+      padding-left: 1.25rem;
+      font-size: 0.9rem;
+    }
+
+    .checks li {
+      margin-bottom: 0.25rem;
+    }
+
+    code {
+      background: #f1f5f9;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Suite de Pruebas — <code>scheduler.js</code></h1>
+      <p>Verificación de Gantt completo, promedio de espera y promedio de retorno (tolerancia ±0.01)</p>
+    </header>
+
+    <section id="resumen" class="summary" aria-label="Resumen de pruebas"></section>
+    <main id="resultados" aria-label="Detalle de casos de prueba"></main>
+  </div>
+
+  <script type="module">
+    import { fifo, sjf } from "./scheduler.js";
+
+    const TOLERANCIA = 0.01;
+
+    const CASOS_DE_PRUEBA = [
+      {
+        id: "CP-F1",
+        algoritmo: "FIFO",
+        procesos: [
+          { id: "P1", tiempoLlegada: 0, rafaga: 5, prioridad: 1 },
+          { id: "P2", tiempoLlegada: 1, rafaga: 3, prioridad: 1 },
+          { id: "P3", tiempoLlegada: 2, rafaga: 1, prioridad: 1 }
+        ],
+        ganttEsperado: [
+          { id: "P1", inicio: 0, fin: 5 },
+          { id: "P2", inicio: 5, fin: 8 },
+          { id: "P3", inicio: 8, fin: 9 }
+        ],
+        esperaEsperada: 3.33,
+        retornoEsperado: 6.33
+      },
+      {
+        id: "CP-F2",
+        algoritmo: "FIFO",
+        procesos: [
+          { id: "P1", tiempoLlegada: 2, rafaga: 3, prioridad: 1 },
+          { id: "P2", tiempoLlegada: 3, rafaga: 2, prioridad: 1 },
+          { id: "P3", tiempoLlegada: 10, rafaga: 1, prioridad: 1 }
+        ],
+        ganttEsperado: [
+          { id: "IDLE", inicio: 0, fin: 2 },
+          { id: "P1", inicio: 2, fin: 5 },
+          { id: "P2", inicio: 5, fin: 7 },
+          { id: "IDLE", inicio: 7, fin: 10 },
+          { id: "P3", inicio: 10, fin: 11 }
+        ],
+        esperaEsperada: 0.67,
+        retornoEsperado: 2.67
+      },
+      {
+        id: "CP-F3",
+        algoritmo: "FIFO",
+        procesos: [
+          { id: "P1", tiempoLlegada: 0, rafaga: 4, prioridad: 1 },
+          { id: "P2", tiempoLlegada: 0, rafaga: 2, prioridad: 1 },
+          { id: "P3", tiempoLlegada: 0, rafaga: 3, prioridad: 1 }
+        ],
+        ganttEsperado: [
+          { id: "P1", inicio: 0, fin: 4 },
+          { id: "P2", inicio: 4, fin: 6 },
+          { id: "P3", inicio: 6, fin: 9 }
+        ],
+        esperaEsperada: 3.33,
+        retornoEsperado: 6.33
+      },
+      {
+        id: "CP-F4",
+        algoritmo: "FIFO",
+        procesos: [
+          { id: "P1", tiempoLlegada: 0, rafaga: 7, prioridad: 1 },
+          { id: "P2", tiempoLlegada: 2, rafaga: 4, prioridad: 1 },
+          { id: "P3", tiempoLlegada: 4, rafaga: 1, prioridad: 1 },
+          { id: "P4", tiempoLlegada: 5, rafaga: 4, prioridad: 1 }
+        ],
+        ganttEsperado: [
+          { id: "P1", inicio: 0, fin: 7 },
+          { id: "P2", inicio: 7, fin: 11 },
+          { id: "P3", inicio: 11, fin: 12 },
+          { id: "P4", inicio: 12, fin: 16 }
+        ],
+        esperaEsperada: 4.75,
+        retornoEsperado: 8.75
+      },
+      {
+        id: "CP-S1",
+        algoritmo: "SJF",
+        procesos: [
+          { id: "P1", tiempoLlegada: 0, rafaga: 7, prioridad: 1 },
+          { id: "P2", tiempoLlegada: 2, rafaga: 4, prioridad: 1 },
+          { id: "P3", tiempoLlegada: 4, rafaga: 1, prioridad: 1 },
+          { id: "P4", tiempoLlegada: 5, rafaga: 4, prioridad: 1 }
+        ],
+        ganttEsperado: [
+          { id: "P1", inicio: 0, fin: 7 },
+          { id: "P3", inicio: 7, fin: 8 },
+          { id: "P2", inicio: 8, fin: 12 },
+          { id: "P4", inicio: 12, fin: 16 }
+        ],
+        esperaEsperada: 4.0,
+        retornoEsperado: 8.0
+      },
+      {
+        id: "CP-S2",
+        algoritmo: "SJF",
+        procesos: [
+          { id: "P1", tiempoLlegada: 0, rafaga: 3, prioridad: 1 },
+          { id: "P2", tiempoLlegada: 0, rafaga: 3, prioridad: 1 },
+          { id: "P3", tiempoLlegada: 0, rafaga: 1, prioridad: 1 }
+        ],
+        ganttEsperado: [
+          { id: "P3", inicio: 0, fin: 1 },
+          { id: "P1", inicio: 1, fin: 4 },
+          { id: "P2", inicio: 4, fin: 7 }
+        ],
+        esperaEsperada: 1.67,
+        retornoEsperado: 4.0
+      },
+      {
+        id: "CP-S3",
+        algoritmo: "SJF",
+        procesos: [
+          { id: "P1", tiempoLlegada: 0, rafaga: 2, prioridad: 1 },
+          { id: "P2", tiempoLlegada: 5, rafaga: 3, prioridad: 1 },
+          { id: "P3", tiempoLlegada: 5, rafaga: 1, prioridad: 1 }
+        ],
+        ganttEsperado: [
+          { id: "P1", inicio: 0, fin: 2 },
+          { id: "IDLE", inicio: 2, fin: 5 },
+          { id: "P3", inicio: 5, fin: 6 },
+          { id: "P2", inicio: 6, fin: 9 }
+        ],
+        esperaEsperada: 0.33,
+        retornoEsperado: 2.33
+      },
+      {
+        id: "CP-S4",
+        algoritmo: "SJF",
+        procesos: [
+          { id: "P1", tiempoLlegada: 0, rafaga: 6, prioridad: 1 },
+          { id: "P2", tiempoLlegada: 1, rafaga: 1, prioridad: 1 }
+        ],
+        ganttEsperado: [
+          { id: "P1", inicio: 0, fin: 6 },
+          { id: "P2", inicio: 6, fin: 7 }
+        ],
+        esperaEsperada: 2.5,
+        retornoEsperado: 6.0
+      }
+    ];
+
+    function formatearGantt(gantt) {
+      return gantt.map((t) => `${t.id}(${t.inicio}-${t.fin})`).join(", ");
+    }
+
+    function compararGantt(actual, esperado) {
+      if (!Array.isArray(actual) || actual.length !== esperado.length) {
+        return false;
+      }
+      return esperado.every((esp, idx) => {
+        const act = actual[idx];
+        return (
+          act &&
+          act.id === esp.id &&
+          Number(act.inicio) === esp.inicio &&
+          Number(act.fin) === esp.fin
+        );
+      });
+    }
+
+    function dentroDeTolerancia(actual, esperado) {
+      return Math.abs(Number(actual) - esperado) <= TOLERANCIA;
+    }
+
+    function ejecutarPruebas() {
+      const contenedorResultados = document.getElementById("resultados");
+      const contenedorResumen = document.getElementById("resumen");
+
+      let aprobados = 0;
+
+      CASOS_DE_PRUEBA.forEach((caso) => {
+        const entradaCopia = caso.procesos.map((p) => ({ ...p }));
+        const salida = caso.algoritmo === "SJF" ? sjf(entradaCopia) : fifo(entradaCopia);
+
+        const ganttOk = compararGantt(salida.gantt, caso.ganttEsperado);
+        const esperaOk = dentroDeTolerancia(salida.promedios?.espera, caso.esperaEsperada);
+        const retornoOk = dentroDeTolerancia(salida.promedios?.retorno, caso.retornoEsperado);
+
+        const todoOk = ganttOk && esperaOk && retornoOk;
+        if (todoOk) aprobados++;
+
+        const entradaTexto = caso.procesos
+          .map((p) => `${p.id}(${p.tiempoLlegada},${p.rafaga})`)
+          .join(", ");
+
+        const article = document.createElement("article");
+        article.className = `test-card ${todoOk ? "pass" : "fail"}`;
+
+        article.innerHTML = `
+          <div class="test-header">
+            <span class="test-title">${caso.id} (${caso.algoritmo})</span>
+            <span class="status-badge ${todoOk ? "pass" : "fail"}">
+              ${todoOk ? "PASÓ" : "FALLÓ"}
+            </span>
+          </div>
+          <div class="test-meta">Entrada: ${entradaTexto}</div>
+          <ul class="checks">
+            <li>
+              <strong>Gantt (${ganttOk ? "OK" : "ERROR"}):</strong>
+              Esperado <code>${formatearGantt(caso.ganttEsperado)}</code> |
+              Obtenido <code>${formatearGantt(salida.gantt || [])}</code>
+            </li>
+            <li>
+              <strong>Promedio espera (${esperaOk ? "OK" : "ERROR"}):</strong>
+              Esperado <code>${caso.esperaEsperada.toFixed(2)}</code> |
+              Obtenido <code>${Number(salida.promedios?.espera ?? 0).toFixed(2)}</code>
+            </li>
+            <li>
+              <strong>Promedio retorno (${retornoOk ? "OK" : "ERROR"}):</strong>
+              Esperado <code>${caso.retornoEsperado.toFixed(2)}</code> |
+              Obtenido <code>${Number(salida.promedios?.retorno ?? 0).toFixed(2)}</code>
+            </li>
+          </ul>
+        `;
+
+        contenedorResultados.appendChild(article);
+      });
+
+      const fallidos = CASOS_DE_PRUEBA.length - aprobados;
+      contenedorResumen.innerHTML = `
+        <div class="summary-box">
+          <span>Total</span>
+          <strong>${CASOS_DE_PRUEBA.length}</strong>
+        </div>
+        <div class="summary-box">
+          <span>Pasaron</span>
+          <strong style="color: #15803d;">${aprobados}</strong>
+        </div>
+        <div class="summary-box">
+          <span>Fallaron</span>
+          <strong style="color: #b91c1c;">${fallidos}</strong>
+        </div>
+      `;
+    }
+
+    ejecutarPruebas();
+  </script>
+</body>
+</html>
